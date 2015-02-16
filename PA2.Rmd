@@ -1,0 +1,36 @@
+
+# Load required libraries, set directories and fileahash #
+
+```{r}
+require(data.table)
+require(ggplot2)
+require(filehash)
+
+if (!file.exists('data')) {dir.create('data')}
+dbPath <- 'data/DB'
+if (!file.exists(dbPath)) {dbCreate(dbPath)}
+db <-  dbInit(dbPath)
+
+```
+
+# Download and read data #
+
+We check if data.table is cached. If not we download csv, create
+data.table and cache it.
+
+```{r}
+if (dbExists(db, "storm.dt")) {
+  print("Reading data.table form cache...")
+  storm.dt <- dbFetch(db, "storm.dt")
+} else {
+  fileURI <- 'https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2'
+  fileBzPath <- 'data/repdata-data-StormData.csv.bz2'
+  if (!file.exists(fileBzPath)) {
+    download.file(fileURI, destfile=fileBzPath, method="curl")
+  }
+  storm.df <- read.csv(bzfile(fileBzPath))
+  storm.dt <- as.data.table(storm.df)
+  dbInsert(db, "storm.dt", storm.dt)
+}
+head(storm.dt)
+```
