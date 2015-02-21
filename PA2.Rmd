@@ -1,7 +1,10 @@
 
-# Load required libraries, set directories and fileahash #
 
-```{r}
+# Data Processing #
+
+## Load required libraries, set directories and fileahash ##
+
+```{r, echo = TRUE}
 require(data.table)
 require(ggplot2)
 require(filehash)
@@ -10,16 +13,16 @@ if (!file.exists('data')) {dir.create('data')}
 dbPath <- 'data/DB'
 if (!file.exists(dbPath)) {dbCreate(dbPath)}
 db <-  dbInit(dbPath)
-
 ```
 
-# Download and read data #
+## Download and read data ##
 
-We check if data.table is cached. If not we download csv, create
-data.table and cache it.
 
-```{r}
+```{r, echo = TRUE}
 if (dbExists(db, "storm.dt")) {
+  #We check if data.table is cached. If not we download csv, create
+  #data.table and cache it.
+
   print("Reading data.table form cache...")
   storm.dt <- dbFetch(db, "storm.dt")
 } else {
@@ -32,5 +35,104 @@ if (dbExists(db, "storm.dt")) {
   storm.dt <- as.data.table(storm.df)
   dbInsert(db, "storm.dt", storm.dt)
 }
-head(storm.dt)
+str(storm.dt)
+
+evtype <- unique(tolower(storm.dt[,EVTYPE]))
+evtype
+
+evtype[grep("tornado",evtype)]
+evtype[grep("THUNDERSTORM|TSTM",evtype)]
+evtype[grep("astro",evtype)]
+
+unique(storm.dt[,PROPDMGEXP])
+unique(storm.dt[,PROPDMGEXP])
+```
+
+
+```{r}
+
+strom.col.ordered <- function(cname) {
+  sco <- storm.dt[,sum(get(cname)),by=EVTYPE]
+  sco[order(sco$V1, decreasing=T)]
+}
+
+fatalities<-strom.col.ordered("FATALITIES")
+cnum <- dim(fatalities)[1]
+sum(fatalities[21:cnum]$V1)
+fatalities[1:20]
+
+injuries<-strom.col.ordered("INJURIES")
+cnum <- dim(injuries)[1]
+sum(injuries[21:cnum]$V1)
+sum(injuries[1:20]$V1)
+injuries[1:20]
+
+
+```
+
+
+
+
+```{r}
+
+
+
+events <- list(
+    AstronomicalLowTide=evtype[grep("astronomical",evtype)],
+    Avalanche=evtype[grep("avalanche",evtype)],
+    Blizzard=evtype[grep("blizzard",evtype)],
+    CoastalFlood=evtype[grep("coastal flood",evtype)],
+    ColdWindChill=evtype[grep("cold/wind chill",evtype)],
+    DebrisFlow=evtype[grep("debris flow",evtype)],
+    DenseFog=evtype[grep("dense fog",evtype)],
+    DenseSmoke=evtype[grep("dense smoke",evtype)],
+    Drought=evtype[grep("drought",evtype)],
+    DustDevil=evtype[grep("dust devil",evtype)],
+    DustStorm=evtype[grep("dust storm",evtype)],
+    ExcessiveHeat=evtype[grep("excessive heat",evtype)],
+    ExtremeColdWindChill=evtype[grep("extreme cold wind chill",evtype)],
+    FlashFlood=evtype[grep("flash flood",evtype)],
+    Flood=evtype[grep("flood",evtype)],
+    FrostFreeze=evtype[grep("frost|freeze",evtype)],
+    FunnelCloud=evtype[grep("funnel cloud",evtype)],
+    FreezingFog=evtype[grep("freezing fog",evtype)],
+    Hail=evtype[grep("hail",evtype)],
+    Heat=evtype[grep("heat",evtype)],
+    HeavyRain=evtype[grep("heavy rain",evtype)],
+    HeavySnow=evtype[grep("heavy snow",evtype)],
+    HighSurf=evtype[grep("high surf",evtype)],
+    HighWind=evtype[grep("high wind",evtype)],
+    HurricaneTyphoon=evtype[grep("hurricane|typhoon",evtype)],
+    IceStorm=evtype[grep("ice storm",evtype)],
+    LakeEffectSnow=evtype[grep("lake effect snow",evtype)],
+    LakeshoreFlood=evtype[grep("lakeshore flood",evtype)],
+    Lightning=evtype[grep("lightning",evtype)],
+    MarineHail=evtype[grep("marine hail",evtype)],
+    MarineHighWind=evtype[grep("marine high wind",evtype)],
+    MarineStrongWind=evtype[grep("marine strong wind",evtype)],
+    MarineThunderstormWind=evtype[grep("marine thunderstorm wind",evtype)],
+    RipCurrent=evtype[grep("rip current",evtype)],
+    Seiche=evtype[grep("seiche",evtype)],
+    Sleet=evtype[grep("sleet",evtype)],
+    StormSurgeTide=evtype[grep("storm surge/tide",evtype)],
+    StrongWind=evtype[grep("strong wind",evtype)],
+    ThunderstormWind=evtype[
+       grep(
+           "thunderstorm|tstm|thunderestorm|thunderstorm|thunerstorm|thuderstorm",
+           evtype)],
+    Tornado=evtype[grep("tornado|torndao",evtype)],
+    TropicalDepression=evtype[grep("tropical depression",evtype)],
+    TropicalStorm=evtype[grep("tropical storm",evtype)],
+    Tsunami=evtype[grep("tsunami",evtype)],
+    VolcanicAsh=evtype[grep("volcanic ash",evtype)],
+    Waterspout=evtype[grep("waterspout",evtype)],
+    Wildfire=evtype[grep("wildfire",evtype)],
+    WinterStorm=evtype[grep("winter storm",evtype)],
+    WinterWeather=evtype[grep("winter weather",evtype)],
+    Summary=evtype[grep("summary",evtype)]
+)
+events
+sum.events <- Reduce(c, events)
+sum.events
+evtype[!(evtype %in% sum.events)]
 ```
