@@ -1,6 +1,19 @@
+Fatalities, injuries, property and crop damage caused by weather events
+=======================================================================
 
+# Synopsis #
+
+
+In this note we show that tornado, thunderstorm wind and heat are most
+harmful with respect to population health in the United State. We also
+show that flood, hurricane and tornado cause most property damage
+while drought and flood cause most crop damage. we use U.S. National Oceanic and Atmospheric
+Administration's (NOAA) storm database. This database tracks
+characteristics of major storms and weather events in the United States, including when and where they occur.  It also estimates of any fatalities, injuries, and property damage.
 
 # Data Processing #
+
+In this section we present code we used for data processing.
 
 ## Load required libraries, set directories and fileahash ##
 
@@ -8,6 +21,7 @@
 require(data.table)
 require(ggplot2)
 require(filehash)
+require(knitr)
 
 if (!file.exists('data')) {dir.create('data')}
 dbPath <- 'data/DB'
@@ -19,33 +33,39 @@ db <-  dbInit(dbPath)
 
 
 ```{r, echo = TRUE}
-if (dbExists(db, "storm.dt")) {
-  #We check if data.table is cached. If not we download csv, create
-  #data.table and cache it.
-
-  print("Reading data.table form cache...")
-  storm.dt <- dbFetch(db, "storm.dt")
-} else {
+download.storm.dt <- function() {
   fileURI <- 'https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2'
   fileBzPath <- 'data/repdata-data-StormData.csv.bz2'
   if (!file.exists(fileBzPath)) {
     download.file(fileURI, destfile=fileBzPath, method="curl")
   }
   storm.df <- read.csv(bzfile(fileBzPath))
-  storm.dt <- as.data.table(storm.df)
-  dbInsert(db, "storm.dt", storm.dt)
+  as.data.table(storm.df)
 }
+
+
+get.or.cache <- function(fun, svar) {
+  if (dbExists(db, svar)) {
+    #We check if svar is cached. If not we exectute function and cache
+    #its value.
+
+    print("Reading data.table form cache...")
+    dbFetch(db, svar)
+  } else {
+    var <- fun()
+    dbInsert(db, svar, var)
+  }
+}
+
+storm.dt <- get.or.cache(download.storm.dt, "storm.dt")
 str(storm.dt)
+
 
 evtype <- unique(tolower(storm.dt[,EVTYPE]))
 evtype
 
-evtype[grep("tornado",evtype)]
-evtype[grep("THUNDERSTORM|TSTM",evtype)]
-evtype[grep("astro",evtype)]
 
-unique(storm.dt[,PROPDMGEXP])
-unique(storm.dt[,PROPDMGEXP])
+
 ```
 
 
@@ -67,72 +87,53 @@ sum(injuries[21:cnum]$V1)
 sum(injuries[1:20]$V1)
 injuries[1:20]
 
-
 ```
-
-
-
 
 ```{r}
+propexps <- storm.dt[,PROPDMGEXP]
+cropexps <- storm.dt[,CROPDMGEXP]
+propexps.unique <- sort(as.character(unique(propexps)))
+cropexps.unique <- sort(as.character(unique(cropexps)))
+propexps.unique
+cropexps.unique
 
+tonum <- function(ch) {
+  ch <- as.character(ch)
+  if (ch=='h' || ch =='H') {
+    1
+  } else if (ch == 'K'||ch == 'k') {
+    3
+  } else if (ch=='m'|| ch=='M') {
+    6
+  }
+  else if (ch=='B') {
+    9
+  } else if (ch %in% c("",  "-", "?", "+")) {
+    0
+  } else {
+    as.integer(ch)
+  }
+}
 
+propexps.new <- get.or.cache(function() {sapply(propexps, tonum)}, "propexps.new")
+cropexps.new <- get.or.cache(function() {sapply(cropexps, tonum)}, "cropexps.new")
 
-events <- list(
-    AstronomicalLowTide=evtype[grep("astronomical",evtype)],
-    Avalanche=evtype[grep("avalanche",evtype)],
-    Blizzard=evtype[grep("blizzard",evtype)],
-    CoastalFlood=evtype[grep("coastal flood",evtype)],
-    ColdWindChill=evtype[grep("cold/wind chill",evtype)],
-    DebrisFlow=evtype[grep("debris flow",evtype)],
-    DenseFog=evtype[grep("dense fog",evtype)],
-    DenseSmoke=evtype[grep("dense smoke",evtype)],
-    Drought=evtype[grep("drought",evtype)],
-    DustDevil=evtype[grep("dust devil",evtype)],
-    DustStorm=evtype[grep("dust storm",evtype)],
-    ExcessiveHeat=evtype[grep("excessive heat",evtype)],
-    ExtremeColdWindChill=evtype[grep("extreme cold wind chill",evtype)],
-    FlashFlood=evtype[grep("flash flood",evtype)],
-    Flood=evtype[grep("flood",evtype)],
-    FrostFreeze=evtype[grep("frost|freeze",evtype)],
-    FunnelCloud=evtype[grep("funnel cloud",evtype)],
-    FreezingFog=evtype[grep("freezing fog",evtype)],
-    Hail=evtype[grep("hail",evtype)],
-    Heat=evtype[grep("heat",evtype)],
-    HeavyRain=evtype[grep("heavy rain",evtype)],
-    HeavySnow=evtype[grep("heavy snow",evtype)],
-    HighSurf=evtype[grep("high surf",evtype)],
-    HighWind=evtype[grep("high wind",evtype)],
-    HurricaneTyphoon=evtype[grep("hurricane|typhoon",evtype)],
-    IceStorm=evtype[grep("ice storm",evtype)],
-    LakeEffectSnow=evtype[grep("lake effect snow",evtype)],
-    LakeshoreFlood=evtype[grep("lakeshore flood",evtype)],
-    Lightning=evtype[grep("lightning",evtype)],
-    MarineHail=evtype[grep("marine hail",evtype)],
-    MarineHighWind=evtype[grep("marine high wind",evtype)],
-    MarineStrongWind=evtype[grep("marine strong wind",evtype)],
-    MarineThunderstormWind=evtype[grep("marine thunderstorm wind",evtype)],
-    RipCurrent=evtype[grep("rip current",evtype)],
-    Seiche=evtype[grep("seiche",evtype)],
-    Sleet=evtype[grep("sleet",evtype)],
-    StormSurgeTide=evtype[grep("storm surge/tide",evtype)],
-    StrongWind=evtype[grep("strong wind",evtype)],
-    ThunderstormWind=evtype[
-       grep(
-           "thunderstorm|tstm|thunderestorm|thunderstorm|thunerstorm|thuderstorm",
-           evtype)],
-    Tornado=evtype[grep("tornado|torndao",evtype)],
-    TropicalDepression=evtype[grep("tropical depression",evtype)],
-    TropicalStorm=evtype[grep("tropical storm",evtype)],
-    Tsunami=evtype[grep("tsunami",evtype)],
-    VolcanicAsh=evtype[grep("volcanic ash",evtype)],
-    Waterspout=evtype[grep("waterspout",evtype)],
-    Wildfire=evtype[grep("wildfire",evtype)],
-    WinterStorm=evtype[grep("winter storm",evtype)],
-    WinterWeather=evtype[grep("winter weather",evtype)],
-    Summary=evtype[grep("summary",evtype)]
-)
-events
-sum.events <- Reduce(c, events)
-sum.events
-evtype[!(evtype %in% sum.events)]
+storm.dt[, PropExp:=propexps.new]
+storm.dt[, PropD:=PROPDMG*(10)^PropExp]
+storm.dt[, CropExp:=cropexps.new]
+storm.dt[, CropD:=CROPDMG*(10)^CropExp]
+
+prop.dmg<-strom.col.ordered("PropD")
+cnum <- dim(prop.dmg)[1]
+sum(prop.dmg[21:cnum]$V1)
+sum(prop.dmg[1:cnum]$V1)
+prop.dmg[1:20]
+
+crop.dmg<-strom.col.ordered("CropD")
+cnum <- dim(crop.dmg)[1]
+sum(crop.dmg[21:cnum]$V1)
+sum(crop.dmg[1:cnum]$V1)
+crop.dmg[1:20]
+
 ```
+    
