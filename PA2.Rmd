@@ -3,13 +3,15 @@ Fatalities, injuries, property and crop damage caused by weather events
 
 # Synopsis #
 
-
 In this note we show that tornado, thunderstorm wind and heat are most
 harmful with respect to population health in the United State. We also
 show that flood, hurricane and tornado cause most property damage
-while drought and flood cause most crop damage. we use U.S. National Oceanic and Atmospheric
+while drought and flood cause most crop damage. we use U.S. National
+Oceanic and Atmospheric
 Administration's (NOAA) storm database. This database tracks
-characteristics of major storms and weather events in the United States, including when and where they occur.  It also estimates of any fatalities, injuries, and property damage.
+characteristics of major storms and weather events in the United
+States, including when and where they occur.  It also estimates
+of any fatalities, injuries, and property damage.
 
 # Data Processing #
 
